@@ -47,7 +47,7 @@ print("=" * 80)
 
 # MODEL 1: Full Model WITH KET (F1-F17 + P1-P11 + Ket) - 29 features
 try:
-    with open('model_production_with_ket.pkl', 'rb') as f:
+    with open('model_production_full.pkl', 'rb') as f:
         model_full_data = pickle.load(f)
     
     model_full = model_full_data['model']
@@ -66,7 +66,7 @@ except Exception as e:
 
 # MODEL 2: Risk Screening Model (F1-F17 only) - 17 features
 try:
-    with open('model_risk_screening_improved.pkl', 'rb') as f:
+    with open('model_risk_screening.pkl', 'rb') as f:
         model_risk_data = pickle.load(f)
     
     model_risk = model_risk_data['model']
@@ -93,8 +93,6 @@ print("=" * 80)
 
 class PatientDataFull(BaseModel):
     """Model untuk Full Diagnosis (29 features WITH KET)"""
-    nama: Optional[str] = None
-    umur: Optional[int] = None
     
     # F1-F17
     F1: Union[str, int]; F2: Union[str, int]; F3: Union[str, int]
@@ -116,7 +114,6 @@ class PatientDataFull(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "nama": "Ibu Siti", "umur": 45,
                 "F1": 1, "F2": 0, "F3": 1, "F4": 0, "F5": 0, "F6": 0,
                 "F7": 1, "F8": 0, "F9": 0, "F10": 0, "F11": 0, "F12": 1,
                 "F13": 0, "F14": 0, "F15": 0, "F16": 0, "F17": 0,
@@ -128,9 +125,7 @@ class PatientDataFull(BaseModel):
 
 class RiskFactorsInput(BaseModel):
     """Model untuk Risk Screening (17 features)"""
-    nama: Optional[str] = None
-    umur: Optional[int] = None
-    
+    # HAPUS nama dan umur
     # F1-F17 only
     F1: Union[str, int]; F2: Union[str, int]; F3: Union[str, int]
     F4: Union[str, int]; F5: Union[str, int]; F6: Union[str, int]
@@ -138,11 +133,11 @@ class RiskFactorsInput(BaseModel):
     F10: Union[str, int]; F11: Union[str, int]; F12: Union[str, int]
     F13: Union[str, int]; F14: Union[str, int]; F15: Union[str, int]
     F16: Union[str, int]; F17: Union[str, int]
-    
+
     class Config:
         schema_extra = {
             "example": {
-                "nama": "Ibu Ani", "umur": 40,
+                # HAPUS nama dan umur dari example
                 "F1": 1, "F2": 0, "F3": 1, "F4": 0, "F5": 1, "F6": 0,
                 "F7": 1, "F8": 0, "F9": 0, "F10": 0, "F11": 0, "F12": 1,
                 "F13": 0, "F14": 0, "F15": 0, "F16": 0, "F17": 0
@@ -279,7 +274,6 @@ async def predict_full(data: PatientDataFull):
             "status": "success",
             "timestamp": datetime.now().isoformat(),
             "model_type": "Full Diagnosis (29 features with Ket)",
-            "patient_info": {"nama": data.nama, "umur": data.umur} if data.nama or data.umur else None,
             "prediction": hasil,
             "risk_level": risk_level,
             "color_code": color,
@@ -303,7 +297,6 @@ async def predict_risk(data: RiskFactorsInput):
     Risk Screening dengan 17 features (F1-F17 saja)
     Output: 2 classes (Tidak Suspect, Suspect)
     """
-    
     if not MODEL_RISK_LOADED:
         raise HTTPException(status_code=503, detail="Model Risk not loaded")
     
@@ -353,7 +346,7 @@ async def predict_risk(data: RiskFactorsInput):
             "status": "success",
             "timestamp": datetime.now().isoformat(),
             "model_type": "Risk Screening (17 features)",
-            "patient_info": {"nama": data.nama, "umur": data.umur} if data.nama or data.umur else None,
+            # HAPUS patient_info karena tidak ada nama/umur
             "result": hasil,
             "risk_level": risk_level,
             "color_code": color,
@@ -363,7 +356,7 @@ async def predict_risk(data: RiskFactorsInput):
             "next_step": next_step,
             "note": "Ini risk screening awal. Untuk diagnosis lebih lanjut, lengkapi dengan pemeriksaan fisik (P1-P11)."
         }
-        
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
@@ -432,4 +425,4 @@ if __name__ == "__main__":
     print("   ✅ Auto-detect endpoint /predict")
     print("\n💡 Tekan CTRL+C untuk stop\n")
     
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8001, reload=True)
